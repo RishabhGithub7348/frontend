@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { Avatar } from "./ui/avatar";
-import { AvatarImage, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarImage } from "./ui/avatar";
 import { useWebSocket } from "./WebSocketProvider";
 import AudioPlayer from "./AudioPlayer";
 

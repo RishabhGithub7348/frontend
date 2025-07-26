@@ -19,7 +19,11 @@ import React, {
   interface WebSocketContextType {
     sendMessage: (message: { text?: string; [key: string]: unknown }) => void;
     sendMediaChunk: (chunk: MediaChunk) => void;
-    startInteraction: (locationData?: any, languageCode?: string) => void;
+    startInteraction: (locationData?: {
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+    }, languageCode?: string) => void;
     stopInteraction: () => void;
     getSessionStatus: () => void;
     lastTranscription: TranscriptionMessage | null;
@@ -42,8 +46,8 @@ import React, {
   
   const RECONNECT_TIMEOUT = 5000; // 5 seconds
   const CONNECTION_TIMEOUT = 30000; // 30 seconds
-  const AUDIO_BUFFER_DURATION = 2000; // 2 seconds in milliseconds
-  const LOOPBACK_DELAY = 3000; // 3 seconds delay matching backend
+  // const AUDIO_BUFFER_DURATION = 2000; // 2 seconds in milliseconds
+  // const LOOPBACK_DELAY = 3000; // 3 seconds delay matching backend
   
   export const WebSocketProvider: React.FC<{ children: React.ReactNode; url: string; userId?: string }> = ({
     children,
@@ -59,8 +63,8 @@ import React, {
     const connectionTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const audioContextRef = useRef<AudioContext | null>(null);
     const audioBufferQueueRef = useRef<AudioChunkBuffer[]>([]);
-    const currentChunkRef = useRef<AudioChunkBuffer | null>(null);
-    const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    // const currentChunkRef = useRef<AudioChunkBuffer | null>(null);
+    // const playbackIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const reconnectAttemptsRef = useRef(0);
     const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   
@@ -73,6 +77,96 @@ import React, {
       }
       return audioContextRef.current;
     }, []);
+
+    // New function to play concatenated audio chunks
+    const playAudioChunk = useCallback((audioBuffers: ArrayBuffer[]): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        try {
+          const ctx = initAudioContext();
+          
+          const totalLength = audioBuffers.reduce((acc, buffer) => 
+            acc + new Int16Array(buffer).length, 0);
+          
+          if (totalLength === 0) {
+            return resolve();
+          }
+          
+          const combinedInt16Array = new Int16Array(totalLength);
+          let offset = 0;
+          
+          audioBuffers.forEach(buffer => {
+            const int16Data = new Int16Array(buffer);
+            combinedInt16Array.set(int16Data, offset);
+            offset += int16Data.length;
+          });
+          
+          const audioBuffer = ctx.createBuffer(1, totalLength, 24000);
+          const channelData = audioBuffer.getChannelData(0);
+          
+          // Improved smoothing
+          for (let i = 0; i < totalLength; i++) {
+            channelData[i] = combinedInt16Array[i] / 32768.0;
+          }
+          
+          // Longer fade for smoother transitions
+          const fadeSamples = Math.min(200, totalLength / 8);
+          
+          // Fade in
+          for (let i = 0; i < fadeSamples; i++) {
+            const factor = Math.sin((i / fadeSamples) * Math.PI / 2); // Smoother sine curve
+            channelData[i] *= factor;
+          }
+          
+          // Fade out
+          for (let i = 0; i < fadeSamples; i++) {
+            const factor = Math.sin((i / fadeSamples) * Math.PI / 2);
+            channelData[totalLength - 1 - i] *= factor;
+          }
+          
+          const source = ctx.createBufferSource();
+          currentAudioSourceRef.current = source; // Store the current source
+          const gainNode = ctx.createGain();
+          gainNode.gain.value = 1.5;
+          
+          source.buffer = audioBuffer;
+          source.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          const durationMs = (audioBuffer.length / audioBuffer.sampleRate) * 1000;
+          
+          source.start();
+          
+          // Simple random movement simulation for playback level indicator
+          const simulateLevel = () => {
+            // Generate random number between 20-40 to simulate gentle movement
+            const randomLevel = 20 + Math.floor(Math.random() * 20);
+            setPlaybackAudioLevel(randomLevel);
+          };
+          
+          // Update level every 200ms while audio is playing
+          const levelInterval = setInterval(simulateLevel, 200);
+          
+          // Clean up interval and reset level when audio finishes
+          setTimeout(() => {
+            clearInterval(levelInterval);
+            setPlaybackAudioLevel(0); // Reset to zero after playback
+            currentAudioSourceRef.current = null; // Clear the current source
+            resolve();
+          }, durationMs);
+          
+          source.onended = () => {
+            clearInterval(levelInterval);
+            setPlaybackAudioLevel(0); // Also reset to zero if source ends early
+            currentAudioSourceRef.current = null; // Clear the current source
+            resolve();
+          };
+          
+        } catch (error) {
+          console.error('Error playing audio:', error);
+          reject(error);
+        }
+      });
+    }, [initAudioContext]);
   
     const connect = () => {
       // Don't reconnect if already connecting or connected
@@ -186,11 +280,11 @@ import React, {
       }
     };
   
-    const sendBinary = (data: ArrayBuffer) => {
-      if (socketRef.current?.connected) {
-        socketRef.current.emit('binary', data);
-      }
-    };
+    // const sendBinary = (data: ArrayBuffer) => {
+    //   if (socketRef.current?.connected) {
+    //     socketRef.current.emit('binary', data);
+    //   }
+    // };
   
     // Fix the audio playback approach
     useEffect(() => {
@@ -252,97 +346,7 @@ import React, {
           audioBufferQueueRef.current.push = originalPush;
         }
       };
-    }, []);
-  
-    // New function to play concatenated audio chunks
-    const playAudioChunk = useCallback((audioBuffers: ArrayBuffer[]): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        try {
-          const ctx = initAudioContext();
-          
-          const totalLength = audioBuffers.reduce((acc, buffer) => 
-            acc + new Int16Array(buffer).length, 0);
-          
-          if (totalLength === 0) {
-            return resolve();
-          }
-          
-          const combinedInt16Array = new Int16Array(totalLength);
-          let offset = 0;
-          
-          audioBuffers.forEach(buffer => {
-            const int16Data = new Int16Array(buffer);
-            combinedInt16Array.set(int16Data, offset);
-            offset += int16Data.length;
-          });
-          
-          const audioBuffer = ctx.createBuffer(1, totalLength, 24000);
-          const channelData = audioBuffer.getChannelData(0);
-          
-          // Improved smoothing
-          for (let i = 0; i < totalLength; i++) {
-            channelData[i] = combinedInt16Array[i] / 32768.0;
-          }
-          
-          // Longer fade for smoother transitions
-          const fadeSamples = Math.min(200, totalLength / 8);
-          
-          // Fade in
-          for (let i = 0; i < fadeSamples; i++) {
-            const factor = Math.sin((i / fadeSamples) * Math.PI / 2); // Smoother sine curve
-            channelData[i] *= factor;
-          }
-          
-          // Fade out
-          for (let i = 0; i < fadeSamples; i++) {
-            const factor = Math.sin((i / fadeSamples) * Math.PI / 2);
-            channelData[totalLength - 1 - i] *= factor;
-          }
-          
-          const source = ctx.createBufferSource();
-          currentAudioSourceRef.current = source; // Store the current source
-          const gainNode = ctx.createGain();
-          gainNode.gain.value = 1.5;
-          
-          source.buffer = audioBuffer;
-          source.connect(gainNode);
-          gainNode.connect(ctx.destination);
-          
-          const durationMs = (audioBuffer.length / audioBuffer.sampleRate) * 1000;
-          
-          source.start();
-          
-          // Simple random movement simulation for playback level indicator
-          const simulateLevel = () => {
-            // Generate random number between 20-40 to simulate gentle movement
-            const randomLevel = 20 + Math.floor(Math.random() * 20);
-            setPlaybackAudioLevel(randomLevel);
-          };
-          
-          // Update level every 200ms while audio is playing
-          const levelInterval = setInterval(simulateLevel, 200);
-          
-          // Clean up interval and reset level when audio finishes
-          setTimeout(() => {
-            clearInterval(levelInterval);
-            setPlaybackAudioLevel(0); // Reset to zero after playback
-            currentAudioSourceRef.current = null; // Clear the current source
-            resolve();
-          }, durationMs);
-          
-          source.onended = () => {
-            clearInterval(levelInterval);
-            setPlaybackAudioLevel(0); // Also reset to zero if source ends early
-            currentAudioSourceRef.current = null; // Clear the current source
-            resolve();
-          };
-          
-        } catch (error) {
-          console.error('Error playing audio:', error);
-          reject(error);
-        }
-      });
-    }, [initAudioContext]);
+    }, [playAudioChunk]);
   
     const reconnect = () => {
       // Only schedule reconnect if not already scheduled
@@ -369,11 +373,13 @@ import React, {
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
         }
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
+        const timeoutId = connectionTimeoutRef.current;
+        if (timeoutId) {
+          clearTimeout(timeoutId);
         }
       };
-    }, [url, playAudioChunk]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
   
     useEffect(() => {
       if (isConnected) {
@@ -401,7 +407,11 @@ import React, {
       }
     };
 
-    const startInteraction = (locationData?: any, languageCode?: string) => {
+    const startInteraction = (locationData?: {
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+    }, languageCode?: string) => {
       if (socketRef.current?.connected) {
         console.log('🚀 WebSocketProvider - Starting AI interaction');
         console.log('📍 WebSocketProvider - Location data received:', locationData);

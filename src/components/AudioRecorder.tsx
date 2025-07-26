@@ -1,20 +1,27 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Progress } from "./ui/progress";
 import { useWebSocket } from "./WebSocketProvider";
 import { Base64 } from 'js-base64';
 
-interface ChatMessage {
-  text: string;
-  sender: "User" | "Gemini";
-  timestamp: string;
-  isComplete: boolean;
+// interface ChatMessage {
+//   text: string;
+//   sender: "User" | "Gemini";
+//   timestamp: string;
+//   isComplete: boolean;
+// }
+
+interface LocationData {
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  exactAddress?: string;
+  neighborhood?: string | null;
+  landmark?: string | null;
+  formattedForAI?: string;
+  nearbyAttractions?: string[];
 }
 
 interface AudioShareProps {
-  locationData?: any;
+  locationData?: LocationData;
   isLocationReady?: boolean;
   locationError?: string | null;
   selectedLanguage?: string;
@@ -37,20 +44,20 @@ const AudioShare: React.FC<AudioShareProps> = ({
   const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
-  const [detailedLocationData, setDetailedLocationData] = useState<any>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([{
-    text: "Audio sharing session started. I'll transcribe what I hear.",
-    sender: "Gemini",
-    timestamp: new Date().toLocaleTimeString(),
-    isComplete: true
-  }]);
+  // const [detailedLocationData, setDetailedLocationData] = useState<LocationData | null>(null);
+  // const [messages, setMessages] = useState<ChatMessage[]>([{
+  //   text: "Audio sharing session started. I'll transcribe what I hear.",
+  //   sender: "Gemini",
+  //   timestamp: new Date().toLocaleTimeString(),
+  //   isComplete: true
+  // }]);
 
-  const { sendMessage, sendMediaChunk, startInteraction, stopInteraction, isConnected, playbackAudioLevel, lastTranscription } = useWebSocket();
+  const { sendMediaChunk, startInteraction, stopInteraction, isConnected, lastTranscription } = useWebSocket();
 
   // Store detailed location data when received
   useEffect(() => {
     if (locationData) {
-      setDetailedLocationData(locationData);
+      // setDetailedLocationData(locationData);
       console.log('💾 Stored detailed location data locally:', locationData);
     }
   }, [locationData]);
@@ -72,30 +79,31 @@ const AudioShare: React.FC<AudioShareProps> = ({
   // Handle incoming transcriptions
   useEffect(() => {
     if (lastTranscription) {
-      setMessages(prev => {
-        const lastMessage = prev[prev.length - 1];
-        const shouldUpdateLast = lastMessage &&
-          lastMessage.sender === lastTranscription.sender &&
-          !lastMessage.isComplete;
+      // Code for handling messages is commented out
+      // setMessages(prev => {
+      //   const lastMessage = prev[prev.length - 1];
+      //   const shouldUpdateLast = lastMessage &&
+      //     lastMessage.sender === lastTranscription.sender &&
+      //     !lastMessage.isComplete;
 
-        if (shouldUpdateLast) {
-          const updatedMessages = [...prev];
-          updatedMessages[updatedMessages.length - 1] = {
-            ...lastMessage,
-            text: lastMessage.text + lastTranscription.text,
-            isComplete: lastTranscription.finished === true
-          };
-          return updatedMessages;
-        }
+      //   if (shouldUpdateLast) {
+      //     const updatedMessages = [...prev];
+      //     updatedMessages[updatedMessages.length - 1] = {
+      //       ...lastMessage,
+      //       text: lastMessage.text + lastTranscription.text,
+      //       isComplete: lastTranscription.finished === true
+      //     };
+      //     return updatedMessages;
+      //   }
 
-        const newMessage = {
-          text: lastTranscription.text,
-          sender: lastTranscription.sender,
-          timestamp: new Date().toLocaleTimeString(),
-          isComplete: lastTranscription.finished === true
-        };
-        return [...prev, newMessage];
-      });
+      //   const newMessage = {
+      //     text: lastTranscription.text,
+      //     sender: lastTranscription.sender,
+      //     timestamp: new Date().toLocaleTimeString(),
+      //     isComplete: lastTranscription.finished === true
+      //   };
+      //   return [...prev, newMessage];
+      // });
 
       // Notify parent of speaking state changes
       if (onSpeakingStateChange && lastTranscription.sender === 'User') {
@@ -173,7 +181,7 @@ const AudioShare: React.FC<AudioShareProps> = ({
         city: locationData.city,
         state: locationData.state,
         country: locationData.country
-      } : null;
+      } : undefined;
       
       console.log('📋 AudioRecorder - Basic location extracted for AI:', basicLocation);
       console.log('🔍 AudioRecorder - Location data breakdown:');

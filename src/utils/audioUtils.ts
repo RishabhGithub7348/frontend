@@ -8,7 +8,7 @@ export class AudioUtils {
     try {
       console.log('Starting PCM conversion for blob:', audioBlob.size, 'bytes');
       
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
       const arrayBuffer = await audioBlob.arrayBuffer();
       console.log('ArrayBuffer size:', arrayBuffer.byteLength);
@@ -148,7 +148,7 @@ export class AudioUtils {
    */
   static async playBase64Audio(base64Audio: string): Promise<void> {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       
       // Convert base64 to ArrayBuffer
       const arrayBuffer = this.base64ToArrayBuffer(base64Audio);
