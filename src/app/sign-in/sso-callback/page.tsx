@@ -1,5 +1,7 @@
 import { AuthenticateWithRedirectCallback } from '@clerk/nextjs'
 
+export const dynamic = 'force-dynamic'
+
 export default function SSOCallback() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
