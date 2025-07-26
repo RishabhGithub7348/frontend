@@ -43,7 +43,7 @@ function VoicePageContent() {
   const [currentPlaybackLevel, setCurrentPlaybackLevel] = useState(0)
 
   // Language state
-  const [selectedLanguage, setSelectedLanguage] = useState('en-US')
+  const [selectedLanguage, setSelectedLanguage] = useState('hi-IN')
 
   // Get WebSocket context
   const { isConnected, lastTranscription, playbackAudioLevel } = useWebSocket()

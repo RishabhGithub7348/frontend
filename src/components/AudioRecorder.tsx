@@ -33,7 +33,7 @@ const AudioShare: React.FC<AudioShareProps> = ({
   locationData, 
   isLocationReady = false, 
   locationError = null,
-  selectedLanguage = 'en-US',
+  selectedLanguage = 'hi-IN',
   onAudioLevelChange,
   onSpeakingStateChange
 }) => {
