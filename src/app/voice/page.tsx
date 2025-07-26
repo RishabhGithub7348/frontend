@@ -55,7 +55,7 @@ function VoicePageContent() {
   useEffect(() => {
     console.log('🚀 Voice page mounted, requesting user location...');
     getCurrentPosition();
-  }, [getCurrentPosition]); // Include getCurrentPosition in dependency array
+  }, []); // Remove getCurrentPosition from dependency array to prevent infinite loop
 
   // Extract detailed location when position becomes available
   useEffect(() => {

@@ -24,13 +24,36 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type}&key=${apiKey}`
-    const response = await fetch(url)
-    const data = await response.json()
+    // Use the new Places API (New) instead of legacy Places API
+    const url = `https://places.googleapis.com/v1/places:searchNearby`
+    const requestBody = {
+      includedTypes: [type],
+      maxResultCount: 20,
+      locationRestriction: {
+        circle: {
+          center: {
+            latitude: parseFloat(lat),
+            longitude: parseFloat(lng)
+          },
+          radius: parseFloat(radius)
+        }
+      }
+    }
 
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.displayName,places.location,places.types,places.rating,places.priceLevel'
+      },
+      body: JSON.stringify(requestBody)
+    })
+    
+    const data = await response.json()
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('Places search error:', error)
+  } catch  {
+    // console.error('Places search error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch places data' },
       { status: 500 }

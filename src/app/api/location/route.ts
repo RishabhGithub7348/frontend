@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
       details: locationDetails,
       coordinates: { latitude, longitude }
     })
-  } catch (error) {
-    console.error('Location API error:', error)
+  } catch  {
+    // console.error('Location API error:', error)
     return NextResponse.json(
       { error: 'Failed to get location information' },
       { status: 500 }
