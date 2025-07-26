@@ -17,6 +17,34 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Accept build arguments for environment variables
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG CLERK_SECRET_KEY
+ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
+ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+ARG NEXT_PUBLIC_BACKEND_URL
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_TIMEOUT
+ARG NEXT_PUBLIC_MAX_RECONNECT_ATTEMPTS
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ARG GOOGLE_MAPS_API_KEY
+
+# Create .env.local file with environment variables from Railway
+RUN echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" > .env.local \
+    && echo "CLERK_SECRET_KEY=${CLERK_SECRET_KEY}" >> .env.local \
+    && echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.local \
+    && echo "NEXT_PUBLIC_WS_TIMEOUT=${NEXT_PUBLIC_WS_TIMEOUT}" >> .env.local \
+    && echo "NEXT_PUBLIC_MAX_RECONNECT_ATTEMPTS=${NEXT_PUBLIC_MAX_RECONNECT_ATTEMPTS}" >> .env.local \
+    && echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}" >> .env.local \
+    && echo "GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}" >> .env.local
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
